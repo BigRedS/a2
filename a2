@@ -23,8 +23,8 @@ GetOptions(
 
 	"long|l" => \$long_format,
 
-	"config-file" => \$f_config,
-	"apache-home" => \$apache_workdir,
+	"config-file=s" => \$f_config,
+	"apache-home=s" => \$apache_workdir,
 );
 
 my $searchfor = shift;
