@@ -37,7 +37,7 @@ my @vhosts = parse_apache_config($f_config);
 
 my @results;
 foreach my $vhost (@vhosts){
-	if($searchfor =~ m#/#){
+	if($searchfor =~ m#^/#){
 		if($vhost->{documentroot} =~ m/^$searchfor/ or 
 		   $vhost->{file} =~ m/^$searchfor/ or
 		   $vhost->{errorlog} =~ m/^$searchfor/ or
