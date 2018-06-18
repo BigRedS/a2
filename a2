@@ -124,6 +124,7 @@ sub parse_apache_config{
 		if($directive eq 'includeoptional' or $directive eq 'include'){
 			my $line_no = $.;
 			foreach my $pattern (@bits){
+				$pattern.='*' unless $pattern =~ m/\*$/;
 				foreach my $inc_file (glob($pattern)){
 					print STDERR "DEBUG: [$line_no] Including $inc_file \n" if $ENV{DEBUG} > 2;
 					push(@vhosts, (parse_apache_config($inc_file)));
