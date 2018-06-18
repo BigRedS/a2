@@ -1,0 +1,185 @@
+#! /usr/bin/perl
+
+# Script to ask Apache questions
+
+use 5.010;
+use strict;
+use Getopt::Long;
+use Data::Dumper;
+
+my $f_config = -f '/etc/apache2/apache2.conf' ? '/etc/apache2/apache2.conf' : '/etc/httpd/conf/httpd.conf';
+my $apache_workdir = -d '/etc/apache2/' ? '/etc/apache2/' : '/etc/httpd/conf/';
+my @directives = qw/servername documentroot errorlog customlog suexecusergroup assignuserid/;
+my @cumulative_directives = qw/serveralias/;
+
+my ($show_path,$show_docroot,$show_help);
+my $long_format;
+
+GetOptions(
+	"file|f" => \$show_path,
+	"dir|d" => \$show_docroot,
+	"help|h" => \$show_help,
+
+	"long|l" => \$long_format,
+
+	"config-file" => \$f_config,
+	"apache-home" => \$apache_workdir,
+);
+
+my $searchfor = shift;
+
+usage() if $show_help;
+
+chdir($apache_workdir);
+
+my @vhosts = parse_apache_config($f_config);
+
+my @results;
+foreach my $vhost (@vhosts){
+	if($searchfor =~ m#/#){
+		if($vhost->{documentroot} =~ m/^$searchfor/ or 
+		   $vhost->{file} =~ m/^$searchfor/ or
+		   $vhost->{errorlog} =~ m/^$searchfor/ or
+		   $vhost->{accesslog} =~ m/^$searchfor/){
+			push(@results, $vhost);
+		}
+	}elsif($searchfor eq ''){
+		push(@results, $vhost);
+	}elsif(grep {$_ eq $searchfor} @{$vhost->{serveralias}}){
+		push(@results, $vhost);
+	}
+}
+foreach my $vhost (@results){	
+	if($show_path){
+		print $vhost->{file}."\n";
+	}elsif($show_docroot){
+		print $vhost->{documentroot}."\n";
+	}else{
+		print_vhost_config($vhost);
+	}
+}
+
+# # # #
+# # #
+# #
+#
+
+sub print_vhost_config{
+	my $vhost = shift;
+	foreach my $key (@directives, @cumulative_directives, "sockets"){
+		next unless $vhost->{$key};
+		if($key eq 'serveralias' or $key eq 'sockets'){
+			if($long_format){
+				foreach (@{$vhost->{$key}}){
+					printf("%-12s %s\n", $key, $_);
+				}
+			}else{
+				printf("%-12s %s\n", $key, join(', ', @{$vhost->{$key}}));
+			}
+		}else{
+			printf("%-12s %s\n", $key, $vhost->{$key});
+		}
+	}
+	print "\n";
+}
+
+sub parse_apache_config{
+	my $file = shift;
+	print STDERR "DEBUG: Parsing file '$file'\n" if $ENV{DEBUG} > 1;
+	my @vhosts;
+	open(my $fh, '<', $file) or warn ("Failed to open Apache config file '$file': $!") and return;
+	my %vhost;
+	while (my $line = readline($fh)){
+		next if $line =~ m/^\s*#/ or $line =~ m/^\s*$/;
+		$line =~ s/^\s+//;
+		chomp($line);
+		if($line =~ m/^\s*<\s*virtualhost\s+(.+)\s*>\s*$/i){
+			print STDERR "DEBUG: [$.] Vhost $1\n" if $ENV{DEBUG} > 3;
+			my @sockets = split(m/\s+/, $1);
+			%vhost = {};
+			$vhost{file} = $file;
+			$vhost{sockets} = \@sockets;
+			next;
+		}
+		if($line =~ m/^\s*<\s*\/\s*virtualhost\s*>/i){
+			print STDERR "DEBUG: [$.] Vhost '$vhost{servername}' closed \n" if $ENV{DEBUG} > 3;
+			if(!$vhost{servername} or $vhost{servername} !~ m/.+/){
+				print STDERR "[$.] Vhost empty! Not adding\n";
+				undef(%vhost);
+				next;
+			}
+			unshift(@{$vhost{serveralias}}, $vhost{servername});
+			my $full_path = $file;
+			$full_path = $apache_workdir.'/'.$file unless $file =~ m#^/#;
+			$full_path =~ s#//#/#g;
+			$vhost{file} = $full_path;
+			push(@vhosts, \%vhost);
+			next;
+		}
+		my @bits = split(m/\s+/, $line);
+		my $directive = lc(shift(@bits));
+		my $argument = join(' ', @bits);
+		$argument =~ s/^["']//;
+		$argument =~ s/["']$//;
+		if($directive eq 'includeoptional' or $directive eq 'include'){
+			my $line_no = $.;
+			foreach my $pattern (@bits){
+				foreach my $inc_file (glob($pattern)){
+					print STDERR "DEBUG: [$line_no] Including $inc_file \n" if $ENV{DEBUG} > 2;
+					push(@vhosts, (parse_apache_config($inc_file)));
+					print STDERR "DEBUG: [$line_no] Parsing done; returning to '$file'\n" if $ENV{DEBUG} > 2;
+				}
+			}
+			next;
+		}
+		if( grep {$_ eq $directive} @cumulative_directives){
+			print STDERR "DEBUG: [$.] Cumulative directive '$directive': ".join(' ', @bits)."'\n" if $ENV{DEBUG} > 4;
+			print STDERR "DEBUG: [$.] Line: $line\n" if $ENV{DEBUG} > 10;
+			push(@{$vhost{$directive}}, @bits);
+		}elsif( grep {$_ eq $directive} @directives){
+			$argument =~ s#/$## if($directive eq 'documentroot');
+			print STDERR "DEBUG: [$.] Directive '$directive': $argument'\n" if $ENV{DEBUG} > 4;
+			print STDERR "DEBUG: [$.] Line: $line\n" if $ENV{DEBUG} > 10;
+			$vhost{$directive} = $argument;
+		}
+	}
+	return @vhosts;
+}
+
+
+
+sub usage{
+	print <<EOF;
+a2: reads and searches apache config
+
+Usage:
+
+    a2 [term] (options)
+
+If 'term' begins with a '/' it is treated as a path, and compared with ErrorLog,
+CustomLog, DocumentRoot and config file paths. Otherwise it is assumed to be a 
+domain name and compared with ServerName and ServerAlias directives.
+
+Display:
+
+  By default, a selection of the vhost config is displayed.
+
+  --file, -f  - just show path to config file 
+  --dir,  -d  - just show path to documentroot
+
+  --long, -l  - show lists one element per line, rather than comma-separated
+
+More options:
+
+  --config-file [path] - path to core apache2.conf
+  --apache-home [path] - path to apache config dir
+
+Notes:
+
+* Relative paths are taken as being relative to apache-home and shown as absolute
+* The serveralias list has the servername prepended to it
+  
+EOF
+exit;
+
+}
