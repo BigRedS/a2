@@ -39,7 +39,7 @@ my @results;
 foreach my $vhost (@vhosts){
 	if($searchfor =~ m#^/#){
 		if($vhost->{documentroot} =~ m/^$searchfor/ or 
-		   $vhost->{file} =~ m/^$searchfor/ or
+		   $vhost->{configfile} =~ m/^$searchfor/ or
 		   $vhost->{errorlog} =~ m/^$searchfor/ or
 		   $vhost->{accesslog} =~ m/^$searchfor/ or
 		   $vhost->{sslcertificatefile} =~ m/^$searchfor/ or
@@ -55,7 +55,7 @@ foreach my $vhost (@vhosts){
 }
 foreach my $vhost (@results){	
 	if($show_path){
-		print $vhost->{file}."\n";
+		print $vhost->{configfile}."\n";
 	}elsif($show_docroot){
 		print $vhost->{documentroot}."\n";
 	}else{
@@ -70,7 +70,7 @@ foreach my $vhost (@results){
 
 sub print_vhost_config{
 	my $vhost = shift;
-	foreach my $key (@directives, @cumulative_directives, 'sockets', 'file'){
+	foreach my $key (@directives, @cumulative_directives, 'sockets', 'configfile'){
 		next unless $vhost->{$key};
 		if($key eq 'serveralias' or $key eq 'sockets'){
 			if($long_format){
@@ -101,7 +101,7 @@ sub parse_apache_config{
 			print STDERR "DEBUG: [$.] Vhost $1\n" if $ENV{DEBUG} > 3;
 			my @sockets = split(m/\s+/, $1);
 			undef(%vhost);
-			$vhost{file} = $file;
+			$vhost{configfile} = $file;
 			$vhost{sockets} = \@sockets;
 			next;
 		}
@@ -116,7 +116,7 @@ sub parse_apache_config{
 			my $full_path = $file;
 			$full_path = $apache_workdir.'/'.$file unless $file =~ m#^/#;
 			$full_path =~ s#//#/#g;
-			$vhost{file} = $full_path;
+			$vhost{configfile} = $full_path;
 			my %tmp_vhost = %vhost;
 			push(@vhosts, \%tmp_vhost);
 			undef(%vhost);
