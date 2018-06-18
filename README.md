@@ -8,20 +8,25 @@ directory. This aims to be a faster and more reliable way of doing that than
 grepping:
 
     avi@donkey:$ a2 avi.co
-    servername   avi.co
-    documentroot /home/avi/public_html
-    errorlog     /home/avi/logs/error_log
-    customlog    /home/avi/logs/access_log combined
-    serveralias  avi.co, www.avi.co, aviswebsite.co.uk, www.aviswebsite.co.uk
+    servername            avi.co
+    documentroot          /home/avi/wordpress
+    errorlog              /home/avi/logs/error_log
+    customlog             /home/avi/logs/access_log combined
+    serveralias           avi.co, www.avi.co, aviswebsite.co.uk, www.aviswebsite.co.uk
+    sockets               10.20.30.10:80
+    file                  /etc/apache2/sites-enabled/avi.co.conf
 
 If the argument begins with a forward-slash, it is assumed to be a path, and so 
-the log, docroot and config file paths are checked instead:
+the log, docroot, ssl key/cert and config file paths are checked, rather than 
+servernames and aliases:
 
     avi@donkey:~$ a2 /home/avi/logs/pics_error_log 
-    servername   pics.avi.co
-    documentroot /home/avi/pics_html
-    errorlog     /home/avi/logs/pics_error_log
-    serveralias  pics.avi.co
+    servername            pics.avi.co
+    documentroot          /home/avi/pics_html
+    errorlog              /home/avi/logs/pics_error_log
+    serveralias           pics.avi.co
+    sockets               10.20.30.10:80
+    file                  /etc/apache2/sites-enabled/pics.avi.co
 
 and, if you know what you want, you can have it just give the path either to 
 the document root or apache's config file (for all matching vhosts):
