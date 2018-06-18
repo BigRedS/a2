@@ -66,7 +66,7 @@ foreach my $vhost (@results){
 
 sub print_vhost_config{
 	my $vhost = shift;
-	foreach my $key (@directives, @cumulative_directives, "sockets"){
+	foreach my $key (@directives, @cumulative_directives, 'sockets', 'file'){
 		next unless $vhost->{$key};
 		if($key eq 'serveralias' or $key eq 'sockets'){
 			if($long_format){
