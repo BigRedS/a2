@@ -9,7 +9,8 @@ use Data::Dumper;
 
 my $f_config = -f '/etc/apache2/apache2.conf' ? '/etc/apache2/apache2.conf' : '/etc/httpd/conf/httpd.conf';
 my $apache_workdir = -d '/etc/apache2/' ? '/etc/apache2/' : '/etc/httpd/conf/';
-my @directives = qw/servername documentroot errorlog customlog suexecusergroup assignuserid/;
+my @directives = qw/servername documentroot errorlog customlog suexecusergroup assignuserid
+                    sslcertificatefile sslcacertificatefile sslcertificatekeyfile/;
 my @cumulative_directives = qw/serveralias/;
 
 my ($show_path,$show_docroot,$show_help);
@@ -40,7 +41,10 @@ foreach my $vhost (@vhosts){
 		if($vhost->{documentroot} =~ m/^$searchfor/ or 
 		   $vhost->{file} =~ m/^$searchfor/ or
 		   $vhost->{errorlog} =~ m/^$searchfor/ or
-		   $vhost->{accesslog} =~ m/^$searchfor/){
+		   $vhost->{accesslog} =~ m/^$searchfor/ or
+		   $vhost->{sslcertificatefile} =~ m/^$searchfor/ or
+		   $vhost->{sslcacertificatefile} =~ m/^$searchfor/ or
+		   $vhost->{sslcertificatekeyfile} =~ m/^$searchfor/){
 			push(@results, $vhost);
 		}
 	}elsif($searchfor eq ''){
@@ -71,13 +75,13 @@ sub print_vhost_config{
 		if($key eq 'serveralias' or $key eq 'sockets'){
 			if($long_format){
 				foreach (@{$vhost->{$key}}){
-					printf("%-12s %s\n", $key, $_);
+					printf("%-21s %s\n", $key, $_);
 				}
 			}else{
-				printf("%-12s %s\n", $key, join(', ', @{$vhost->{$key}}));
+				printf("%-21s %s\n", $key, join(', ', @{$vhost->{$key}}));
 			}
 		}else{
-			printf("%-12s %s\n", $key, $vhost->{$key});
+			printf("%-21s %s\n", $key, $vhost->{$key});
 		}
 	}
 	print "\n";
