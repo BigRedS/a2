@@ -100,7 +100,7 @@ sub parse_apache_config{
 		if($line =~ m/^\s*<\s*virtualhost\s+(.+)\s*>\s*$/i){
 			print STDERR "DEBUG: [$.] Vhost $1\n" if $ENV{DEBUG} > 3;
 			my @sockets = split(m/\s+/, $1);
-			%vhost = {};
+			undef(%vhost);
 			$vhost{file} = $file;
 			$vhost{sockets} = \@sockets;
 			next;
@@ -117,7 +117,9 @@ sub parse_apache_config{
 			$full_path = $apache_workdir.'/'.$file unless $file =~ m#^/#;
 			$full_path =~ s#//#/#g;
 			$vhost{file} = $full_path;
-			push(@vhosts, \%vhost);
+			my %tmp_vhost = %vhost;
+			push(@vhosts, \%tmp_vhost);
+			undef(%vhost);
 			next;
 		}
 		my @bits = split(m/\s+/, $line);
@@ -143,7 +145,7 @@ sub parse_apache_config{
 			push(@{$vhost{$directive}}, @bits);
 		}elsif( grep {$_ eq $directive} @directives){
 			$argument =~ s#/$## if($directive eq 'documentroot');
-			print STDERR "DEBUG: [$.] Directive '$directive': $argument'\n" if $ENV{DEBUG} > 4;
+			print STDERR "DEBUG: [$.] Directive '$directive': '$argument'\n" if $ENV{DEBUG} > 4;
 			print STDERR "DEBUG: [$.] Line: $line\n" if $ENV{DEBUG} > 10;
 			$vhost{$directive} = $argument;
 		}
