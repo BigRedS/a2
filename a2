@@ -78,7 +78,7 @@ sub print_vhost_config{
 					printf("%-21s %s\n", $key, $_);
 				}
 			}else{
-				printf("%-21s %s\n", $key, join(', ', @{$vhost->{$key}}));
+				printf("%-21s %s\n", $key, join(' ', @{$vhost->{$key}}));
 			}
 		}else{
 			printf("%-21s %s\n", $key, $vhost->{$key});
