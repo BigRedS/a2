@@ -16,6 +16,7 @@ my @cumulative_directives = qw/serveralias/;
 my ($show_path,$show_docroot,$show_help);
 my $long_format;
 my $show_servernames;
+my $check_files;
 
 GetOptions(
 	"file|f" => \$show_path,
@@ -26,6 +27,8 @@ GetOptions(
 
 	"config-file=s" => \$f_config,
 	"apache-home=s" => \$apache_workdir,
+
+	"check-files" => \$check_files,
 
 	"servernames" => \$show_servernames,
 );
@@ -58,7 +61,9 @@ foreach my $vhost (@vhosts){
 }
 foreach my $vhost (@results){
 	next unless $vhost->{servername};
-	if($show_servernames){
+	if($check_files){
+		check_files($vhost);
+	}elsif($show_servernames){
 		print join(' ', @{$vhost->{serveralias}})."\n";
 	}elsif($show_path){
 		print $vhost->{configfile}."\n";
@@ -73,6 +78,40 @@ foreach my $vhost (@results){
 # # #
 # #
 #
+
+sub check_files{
+	my $vhost = shift;
+
+	my @files = qw/sslcertificatefile sslcertificatekeyfile sslcacertificatefile/;
+	my @dirs = qw/documentroot/;
+	my @parent_dirs = qw/errorlog customlog/;
+
+	my (@missing);
+
+	foreach my $name (@files){
+		next unless $vhost->{$name};
+		push(@missing, [$name, $vhost->{$name}]) unless -f $vhost->{$name};
+	}
+	foreach my $name (@dirs){
+		next unless $vhost->{$name};
+		push(@missing, [$name, $vhost->{$name}]) unless -d $vhost->{$name};
+	}
+	foreach my $name (@parent_dirs){
+		next unless $vhost->{$name};
+		my @bits = split(m#/#, $vhost->{$name});
+		pop(@bits);
+		my $dir = join('/', @bits);
+		push(@missing, [$name, $dir]) unless -d $dir;
+	}
+
+	if($missing[0]){
+		print "$vhost->{servername} ($vhost->{configfile})\n";
+		foreach my $file (@missing){
+			printf("  %-21s %s\n", @{$file});
+		}
+	}
+
+}
 
 sub print_vhost_config{
 	my $vhost = shift;
