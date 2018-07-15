@@ -115,7 +115,7 @@ sub parse_apache_config{
 		if($line =~ m/^\s*<\s*\/\s*virtualhost\s*>/i){
 			print STDERR "DEBUG: [$.] Vhost '$vhost{servername}' closed \n" if $ENV{DEBUG} > 3;
 			if(!$vhost{servername} or $vhost{servername} !~ m/.+/){
-				print STDERR "[$.] Vhost empty! Not adding\n";
+				print STDERR "[$.] Vhost empty! Not adding\n" if $ENV{DEBUG} > 1;
 				undef(%vhost);
 				next;
 			}
