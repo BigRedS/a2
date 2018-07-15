@@ -15,6 +15,8 @@ my @cumulative_directives = qw/serveralias/;
 
 my ($show_path,$show_docroot,$show_help);
 my $long_format;
+my $show_servernames;
+my $sockets;
 
 GetOptions(
 	"file|f" => \$show_path,
@@ -25,6 +27,8 @@ GetOptions(
 
 	"config-file=s" => \$f_config,
 	"apache-home=s" => \$apache_workdir,
+
+	"servernames" => \$show_servernames,
 );
 
 my $searchfor = shift;
@@ -53,8 +57,11 @@ foreach my $vhost (@vhosts){
 		push(@results, $vhost);
 	}
 }
-foreach my $vhost (@results){	
-	if($show_path){
+foreach my $vhost (@results){
+	next unless $vhost->{servername};
+	if($show_servernames){
+		print join(' ', @{$vhost->{serveralias}})."\n";
+	}elsif($show_path){
 		print $vhost->{configfile}."\n";
 	}elsif($show_docroot){
 		print $vhost->{documentroot}."\n";
