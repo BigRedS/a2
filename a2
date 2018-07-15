@@ -16,7 +16,6 @@ my @cumulative_directives = qw/serveralias/;
 my ($show_path,$show_docroot,$show_help);
 my $long_format;
 my $show_servernames;
-my $sockets;
 
 GetOptions(
 	"file|f" => \$show_path,
